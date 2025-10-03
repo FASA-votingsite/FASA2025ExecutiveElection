@@ -11,8 +11,8 @@ class Vote(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     
     def _str_(self):
-        return f"{self.voter.matric_number} voted for {self.candidate.student.get_full_name()} as {self.position.title}"
+        return f"{self.voter.matric_number} voted for {self.candidate.student.get_full_name()}"
     
     class Meta:
-        unique_together = ('voter', 'position')  # Prevents duplicate voting
+        unique_together = ('voter', 'position')
         ordering = ['-timestamp']

@@ -138,6 +138,83 @@
   color: #333;
 }
 
+/* Add these new styles to your existing CSS */
+
+.position-card.voted {
+  border-left: 4px solid #28a745;
+  background: #f8fff8;
+}
+
+.candidate-card.user-vote {
+  background: #e8f5e8;
+  border-color: #28a745;
+}
+
+.vote-button.user-vote-button {
+  background: #28a745;
+  color: white;
+}
+
+.vote-button.user-vote-button:hover {
+  background: #28a745;
+  cursor: default;
+}
+
+.vote-button.voting {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.retry-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.retry-button:hover {
+  background: #0056b3;
+}
+
+/* Enhanced vote button states */
+.vote-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vote-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Position card enhancements */
+.position-card {
+  transition: all 0.3s ease;
+}
+
+.position-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.candidate-photo-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  border: 2px solid #e0e0e0;
+}
+
 .voted-badge {
   background: #28a745;
   color: white;
@@ -181,6 +258,46 @@
   margin: 0 0 5px 0;
   color: #333;
   font-size: 18px;
+}
+
+.candidate-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.candidate-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
+}
+
+.candidate-details {
+  flex: 1;
+}
+
+.candidate-details h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+}
+
+.candidate-department {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+  font-size: 14px;
+}
+
+.candidate-manifesto {
+  color: #555;
+  margin: 10px 0 0 0;
+  line-height: 1.5;
+  font-size: 14px;
+  border-left: 3px solid #667eea;
+  padding-left: 10px;
 }
 
 .candidate-department {

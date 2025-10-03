@@ -5,7 +5,7 @@ from .models import Election, Position, Candidate
 from .serializers import ElectionSerializer, PositionSerializer, CandidateSerializer
 
 @api_view(['GET'])
-@permission_classes([])  # Allow unauthenticated access
+@permission_classes([])
 def election_list(request):
     try:
         elections = Election.objects.filter(is_active=True)
@@ -15,7 +15,7 @@ def election_list(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([])  # Allow unauthenticated access
+@permission_classes([])
 def position_list(request):
     try:
         positions = Position.objects.filter(election__is_active=True)
@@ -25,11 +25,21 @@ def position_list(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([])  # Allow unauthenticated access
+@permission_classes([])
 def candidate_list(request):
     try:
-        candidates = Candidate.objects.filter(position_election_is_active=True)
+        # Use select_related to optimize database queries
+        candidates = Candidate.objects.filter(
+            position__election__is_active=True
+        ).select_related('student', 'position', 'position__election')
+        
         serializer = CandidateSerializer(candidates, many=True)
         return Response(serializer.data)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(f"Error in candidate_list: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'error': 'Internal server error in candidates'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

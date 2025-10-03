@@ -44,3 +44,90 @@ const APITest = () => {
 };
 
 export default APITest;
+
+
+
+
+
+        {!error && positions.length > 0 && (
+          <div className="positions-grid">
+            {positions.map(position => {
+              const hasVoted = hasVotedForPosition(position.id);
+              const votedCandidate = getVotedCandidateForPosition(position.id);
+              const isVoting = votingInProgress[position.id] || false;
+              
+              return (
+                <div key={position.id} className={`position-card ${hasVoted ? 'voted' : ''}`}>
+                  <div className="position-header">
+                    <h3>{position.title}</h3>
+                    {hasVoted && (
+                      <span className="voted-badge">✓ Voted</span>
+                    )}
+                  </div>
+                  <p className="position-description">{position.description}</p>
+                  
+                  <div className="candidates-list">
+                    {position.candidates && position.candidates.map(candidate => {
+                      const isVotedCandidate = hasVoted && votedCandidate === candidate.student_name;
+
+                      return (
+                        <div key={candidate.id} className={`candidate-card ${isVotedCandidate ? 'user-vote' : ''}`}>
+                          <div className="candidate-info">
+                            <div className="candidate-header">
+                              {candidate.photo_url && (
+                                <img 
+                                  src={`http://localhost:8000${candidate.photo_url}`} 
+                                  alt={candidate.student_name}
+                                  className="candidate-photo"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <div className="candidate-details">
+                                <h4>{candidate.student_name}</h4>
+                                <p className="candidate-department">{candidate.student_department}</p>
+                              </div>
+                            </div>
+                            <p className="candidate-manifesto">{candidate.manifesto}</p>
+                          </div>
+
+                          <div className="candidate-actions">
+                            {hasVoted ? (
+                              isVotedCandidate ? (
+                                <button className="vote-button user-vote-button" disabled>
+                                  Your Vote ✓
+                                </button>
+                              ) : (
+                                <button className="vote-button disabled" disabled>
+                                  Already Voted
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => handleVote(position.id, candidate.id, candidate.student_name)}
+                                disabled={isVoting}
+                                className={`vote-button ${isVoting ? 'voting' : ''}`}
+                              >
+                                {isVoting ? 'Voting...' : 'Vote'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                         );
+                    })}
+                    
+                    {(!position.candidates || position.candidates.length === 0) && (
+                      <div className="no-candidates">
+                        No candidates available for this position.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+

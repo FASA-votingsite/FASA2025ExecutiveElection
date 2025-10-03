@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [voting, setVoting] = useState(false);
+  const [votingInProgress, setVotingInProgress] = useState({});
 
   useEffect(() => {
     fetchElectionData();
@@ -18,21 +18,26 @@ const Dashboard = () => {
 
   const fetchElectionData = async () => {
     try {
-      const [positionsResponse, candidatesResponse] = await Promise.all([
-        electionsAPI.getPositions(),
-        electionsAPI.getCandidates()
-      ]);
+      console.log('Fetching election data from positions endpoint...');
+      const positionsResponse = await electionsAPI.getPositions();
+      
+      console.log('Positions with candidates:', positionsResponse.data);
+
+      /*  
+      const activePositions = positionsResponse.data.filter(position => 
+        position.election && position.election.is_active
+      );*/
       
       // Combine positions with their candidates
-      const positionsWithCandidates = positionsResponse.data.map(position => ({
-        ...position,
-        candidates: candidatesResponse.data.filter(candidate => 
-          candidate.position === position.id
-        )
-      }));
-      
-      setPositions(positionsWithCandidates);
-      setError('');
+      const positionsWithCandidates = positionsResponse.data; 
+
+      console.log('Final positions data:', positionsWithCandidates);
+      if (positionsWithCandidates.length === 0) {
+        setError('No active election found. check if an election is marked active in the admin panel.');
+      } else {
+        setPositions(positionsWithCandidates);
+        setError('');
+      }
     } catch (error) {
       console.error('Error fetching election data:', error);
       setError('Failed to load election data.');
@@ -47,15 +52,38 @@ const Dashboard = () => {
       setMyVotes(response.data);
     } catch (error) {
       console.error('Error fetching votes:', error);
+      setMyVotes([]);
     }
   };
 
+  // Check if user has voted for a specific position
   const hasVotedForPosition = (positionId) => {
-    return myVotes.some(vote => vote.position === positionId);
+    return myVotes.some(vote => {
+      // Handle different data structures from API
+      if (vote.position_id) {
+        return vote.position_id === positionId;
+      } else if (typeof vote.position === 'object') {
+        return vote.position.id === positionId;
+      } else {
+        // If position is just a string title, we need to find the position ID
+        const position = positions.find(p => p.title === vote.position);
+        return position ? position.id === positionId : false;
+      }
+    });
   };
 
-  const getVotedCandidate = (positionId) => {
-    const vote = myVotes.find(vote => vote.position === positionId);
+  // Get the candidate the user voted for in a specific position
+  const getVotedCandidateForPosition = (positionId) => {
+    const vote = myVotes.find(vote => {
+      if (vote.position_id) {
+        return vote.position_id === positionId;
+      } else if (typeof vote.position === 'object') {
+        return vote.position.id === positionId;
+      } else {
+        const position = positions.find(p => p.title === vote.position);
+        return position ? position.id === positionId : false;
+      }
+    });
     return vote ? vote.candidate : null;
   };
 
@@ -64,7 +92,9 @@ const Dashboard = () => {
       return;
     }
 
-    setVoting(true);
+     // Set voting in progress for this specific position
+    setVotingInProgress(prev => ({ ...prev, [positionId]: true }));
+
     try {
       await votesAPI.castVote({
         position_id: positionId,
@@ -72,15 +102,19 @@ const Dashboard = () => {
       });
       
       alert('Vote cast successfully!');
-      // Refresh votes and election data
-      await fetchMyVotes();
-      await fetchElectionData();
+
+       // Refresh the data to update the UI
+      await Promise.all([fetchMyVotes(), fetchElectionData()]);
+      
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to cast vote. Please try again.');
+      const errorMessage = error.response?.data?.error || 'Failed to cast vote. Please try again.';
+      alert(errorMessage);
     } finally {
-      setVoting(false);
+      // Clear voting in progress for this position
+      setVotingInProgress(prev => ({ ...prev, [positionId]: false }));
     }
   };
+
 
   if (loading) {
     return (
@@ -119,64 +153,118 @@ const Dashboard = () => {
           
           {myVotes.length > 0 && (
             <div className="voted-notice">
-              <strong>You have voted for {myVotes.length} position(s). Thank you for participating!</strong>
+              <strong>You have voted for {myVotes.length} position(s).</strong>
             </div>
           )}
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            {error}
+            <button onClick={fetchElectionData} className="retry-button">
+              Retry
+            </button>
+          </div>
+        )}
 
-        <div className="positions-grid">
-          {positions.map(position => {
-            const hasVoted = hasVotedForPosition(position.id);
-            const votedCandidate = getVotedCandidate(position.id);
-            
-            return (
-              <div key={position.id} className="position-card">
-                <div className="position-header">
-                  <h3>{position.title}</h3>
-                  {hasVoted && (
-                    <span className="voted-badge">Voted ✓</span>
-                  )}
-                </div>
-                <p className="position-description">{position.description}</p>
-                
-                <div className="candidates-list">
-                  {position.candidates.map(candidate => (
-                    <div key={candidate.id} className="candidate-card">
-                      <div className="candidate-info">
-                        <h4>{candidate.student_name}</h4>
-                        <p className="candidate-department">{candidate.student_department}</p>
-                        <p className="candidate-manifesto">{candidate.manifesto}</p>
+        {!error && positions.length === 0 && (
+          <div className="no-data-message">
+            <h3>No Election Data Available</h3>
+            <p>There are no active elections or positions to display.</p>
+          </div>
+        )}
+
+
+        {!error && positions.length > 0 && (
+          <div className="positions-grid">
+            {positions.map(position => {
+              const hasVoted = hasVotedForPosition(position.id);
+              const votedCandidate = getVotedCandidateForPosition(position.id);
+              const isVoting = votingInProgress[position.id] || false;
+              
+              return (
+                <div key={position.id} className={`position-card ${hasVoted ? 'voted' : ''}`}>
+                  <div className="position-header">
+                    <h3>{position.title}</h3>
+                    {hasVoted && (
+                      <span className="voted-badge">✓ Voted</span>
+                    )}
+                  </div>
+                  <p className="position-description">{position.description}</p>
+                  
+                  <div className="candidates-list">
+                    {position.candidates && position.candidates.map(candidate => {
+                      const isVotedCandidate = hasVoted && votedCandidate === candidate.student_name;
+
+                      return (
+                        <div key={candidate.id} className={`candidate-card ${isVotedCandidate ? 'user-vote' : ''}`}>
+                          <div className="candidate-info">
+                            <div className="candidate-header">
+                              {candidate.photo_url ? (
+                                <img 
+                                  src={`http://localhost:8000${candidate.photo_url}`} 
+                                  alt={candidate.student_name}
+                                  className="candidate-photo"
+                                  onError={(e) => {
+                                    // If image fails to load, hide it and show fallback
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="candidate-photo-placeholder">
+                                  {candidate.student_name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                              )}
+                              <div className="candidate-details">
+                                <h4>{candidate.student_name}</h4>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="candidate-actions">
+                            {hasVoted ? (
+                              isVotedCandidate ? (
+                                <button className="vote-button user-vote-button" disabled>
+                                  Your Vote ✓
+                                </button>
+                              ) : (
+                                <button className="vote-button disabled" disabled>
+                                  Vote
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => handleVote(position.id, candidate.id, candidate.student_name)}
+                                disabled={isVoting}
+                                className={`vote-button ${isVoting ? 'voting' : ''}`}
+                              >
+                                {isVoting ? 'Voting...' : 'Vote'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                         );
+                    })}
+                    
+                    {(!position.candidates || position.candidates.length === 0) && (
+                      <div className="no-candidates">
+                        No candidates available for this position.
                       </div>
-                      <div className="candidate-actions">
-                        {hasVoted ? (
-                          votedCandidate === candidate.student_name ? (
-                            <button className="vote-button voted" disabled>
-                              Your Vote
-                            </button>
-                          ) : (
-                            <button className="vote-button disabled" disabled>
-                              Voted
-                            </button>
-                          )
-                        ) : (
-                          <button
-                            onClick={() => handleVote(position.id, candidate.id, candidate.student_name)}
-                            disabled={voting}
-                            className="vote-button"
-                          >
-                            {voting ? 'Voting...' : 'Vote'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+
+        {myVotes.length > 0 && (
+            <div className="voted-notice">
+              <strong>You voted for {myVotes.length} position(s). Thank you for participating!</strong>
+            </div>
+          )}
+
       </main>
     </div>
   );

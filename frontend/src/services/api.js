@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Use HTTP for development
 const API_BASE_URL = 'http://localhost:8000/api';
 
 // Create axios instance
@@ -9,33 +8,14 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Add request interceptor for debugging
-api.interceptors.request.use(
-  (config) => {
-    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Token ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
+// Add token to requests automatically
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
   }
-);
-
-// Add response interceptor for debugging
-api.interceptors.response.use(
-  (response) => {
-    console.log(`Response received: ${response.status}`);
-    return response;
-  },
-  (error) => {
-    console.error('Response error:', error);
-    return Promise.reject(error);
-  }
-);
+  return config;
+});
 
 // Auth API
 export const authAPI = {
@@ -44,11 +24,11 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile/'),
 };
 
-// Elections API
+// Elections API - Only positions endpoint (includes candidates)
 export const electionsAPI = {
   getElections: () => api.get('/elections/'),
   getPositions: () => api.get('/elections/positions/'),
-  getCandidates: () => api.get('/elections/candidates/'),
+  // REMOVED: getCandidates - not needed since positions include candidates
 };
 
 // Votes API
