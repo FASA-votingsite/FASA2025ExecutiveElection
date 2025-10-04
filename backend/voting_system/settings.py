@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -94,6 +95,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'voting_system.wsgi.application'
 
+
+
 # Database
 DATABASES = {
     'default': {
@@ -101,6 +104,14 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+"""
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL')
+    )
+}"""
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -155,6 +166,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
